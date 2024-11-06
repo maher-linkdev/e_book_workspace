@@ -1,7 +1,9 @@
 import 'dart:io';
 
 import 'package:dio/dio.dart';
+import 'package:e_book_workspace/pdftron_file_viewer.dart';
 import 'package:e_book_workspace/pdftron_viewer.dart';
+import 'package:e_book_workspace/pspdfkit_viewer.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -14,6 +16,8 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   TextEditingController controller = TextEditingController(text: '');
+
+  //https://www.shelterprojects.org/translations/ar/A.31_Syria2018-AR.pdf
 
   @override
   Widget build(BuildContext context) {
@@ -99,13 +103,12 @@ class _HomePageState extends State<HomePage> {
               onPressed: () async {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (context) => PdftronViewer(
-                      url: "https://www.shelterprojects.org/translations/ar/A.31_Syria2018-AR.pdf",
-                    ),
+                    builder: (context) => PspdfkitViewer(
+                        url: "https://www.ed.gov/sites/ed/files/about/offices/list/ocr/docs/qa-201405-arabic.pdf"),
                   ),
                 );
               },
-              child: Text("pdftron arabic 1"),
+              child: Text("pspdfkit arabic 1"),
             ),
             const SizedBox(height: 30),
             OutlinedButton(
@@ -119,6 +122,20 @@ class _HomePageState extends State<HomePage> {
                 );
               },
               child: Text("pdftron arabic 2"),
+            ),
+            const SizedBox(height: 30),
+
+            OutlinedButton(
+              onPressed: () async {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => PdftronFileViewer(
+                      url: "https://www.ed.gov/sites/ed/files/about/offices/list/ocr/docs/qa-201405-arabic.pdf",
+                    ),
+                  ),
+                );
+              },
+              child: Text("pdftron file arabic 1"),
             ),
 
             // const SizedBox(height: 30),

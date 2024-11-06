@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:e_book_workspace/helper/shared_preferences_helper.dart';
 import 'package:flutter/material.dart';
@@ -25,10 +26,10 @@ class _PdftronViewerState extends State<PdftronViewer> {
     final Map<String, dynamic>? pdfDocumentMeta = await getPdfDocumentMeta();
     _pdfDocumentMeta = pdfDocumentMeta;
     final String? annotationsXFDFString = _getPdfDocumentAnnotation();
-    if (annotationsXFDFString != null) {
-      final documentViewController = await _controllerCompleter.future;
-      documentViewController.importAnnotations(annotationsXFDFString);
-    }
+    // if (annotationsXFDFString != null) {
+    //   final documentViewController = await _controllerCompleter.future;
+    //   documentViewController.importAnnotations(annotationsXFDFString);
+    // }
   }
 
   _onAnnotationsExported(String? xfdfEncodedString) async {
@@ -89,50 +90,135 @@ class _PdftronViewerState extends State<PdftronViewer> {
         width: double.infinity,
         height: double.infinity,
         child: SafeArea(
-            child: Stack(
-          alignment: Alignment.bottomCenter,
-          children: [
-            DocumentView(
-              onCreated: _onDocumentViewCreated,
-            ),
-            // Positioned(
-            //   bottom: 90,
-            //   child: Row(
-            //     children: [
-            //       OutlinedButton(
-            //         onPressed: () async {
-            //           if (_controllerCompleter.isCompleted) {
-            //             final controller = await _controllerCompleter.future;
-            //             controller.deleteAllAnnotations();
-            //           }
-            //         },
-            //         child: Text("remove all annotations"),
-            //       ),
-            //     ],
-            //   ),
-            // ),
-          ],
-        )),
+          child: Stack(
+            alignment: Alignment.bottomCenter,
+            children: [
+              DocumentView(
+                onCreated: _onDocumentViewCreated,
+              ),
+              Positioned(
+                bottom: 90,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    OutlinedButton(
+                      onPressed: () async {
+                        final documentViewController = await _controllerCompleter.future;
+                        documentViewController.saveDocument();
+                      },
+                      child: Text("Save"),
+                    ),
+                    OutlinedButton(
+                      onPressed: () async {
+                        final documentViewController = await _controllerCompleter.future;
+                        String word = "سجلات الطالب";
+                        if (_isArabic(word) && Platform.isIOS) {
+                          final _reversedWord = _reverseArabicSentence(word);
+                          documentViewController.startSearchMode(_reversedWord, true, true);
+                        } else {
+                          documentViewController.startSearchMode(word, true, true);
+                          documentViewController.openSearch();
+                        }
+
+                        //CRASH ON IOS
+                      },
+                      child: Text("Search"),
+                    ),
+                    // OutlinedButton(
+                    //   onPressed: () async {
+                    //     final documentViewController = await _controllerCompleter.future;
+                    //     //OPEN BOOKMARK, OUTLINE, NAVIGATION
+                    //     documentViewController.openBookmarkList();
+                    //     // documentViewController.openOutlineList();
+                    //     // documentViewController.openNavigationLists();
+                    //     // documentViewController.openAnnotationList();
+                    //   },
+                    //   child: Text("Open bookmark"),
+                    // ),
+                    // OutlinedButton(
+                    //   onPressed: () async {
+                    //     final documentViewController = await _controllerCompleter.future;
+                    //     documentViewController.zoomWithCenter(4, (MediaQuery.sizeOf(context).width / 2).toInt(),
+                    //         (MediaQuery.sizeOf(context).height / 2).toInt());
+                    //   },
+                    //   child: Text("zoom 40"),
+                    // ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 
+  bool _isArabic(String input) {
+    final arabicRegex = RegExp(r'[\u0600-\u06FF]');
+    return arabicRegex.hasMatch(input);
+  }
+
+  String _reverseArabicSentence(String input) {
+    // Split the string into individual characters
+    List<String> chars = input.split('');
+    // Reverse the list of characters
+    List<String> reversedChars = chars.reversed.toList();
+    // Join the reversed list back into a string
+    return reversedChars.join();
+  }
+
   void _onDocumentViewCreated(DocumentViewController controller) async {
     Config config = new Config();
+    config.layoutMode = LayoutModes.single;
+    var disabledElements = [
+      Buttons.printButton,
+      Buttons.searchButton,
+      Buttons.saveCopyButton,
+      Buttons.editPagesButton,
+      Buttons.shareButton,
+    ];
+    var disabledTools = [Tools.annotationCreateLine];
+    var hideDefaultAnnotationToolbars = [
+      DefaultToolbars.view,
+      DefaultToolbars.draw,
+    ];
+    config.disabledElements = disabledElements;
+    config.disabledTools = disabledTools;
+    config.hideDefaultAnnotationToolbars = hideDefaultAnnotationToolbars;
+    config.hideAnnotationToolbarSwitcher = true;
+    config.continuousAnnotationEditing = true;
+    //config.hideTopAppNavBar = true;
+    config.hideBottomToolbar = true;
+    config.hideScrollbars = true;
+    config.userBookmarksListEditingEnabled = false;
+    config.annotationsListEditingEnabled = false;
+    config.autoSaveEnabled = true;
+    config.showDocumentSavedToast = false;
+
+    //config.hideAnnotationMenu = [AnnotationMenuItems.ungroup, ];
     var leadingNavCancel = startLeadingNavButtonPressedListener(() {
-      // Uncomment this to quit viewer when leading navigation button is pressed:
-      // this.setState(() {
-      //   _showViewer = !_showViewer;
-      // });
-      // Show a dialog when leading navigation button is pressed.
       _showMyDialog();
     });
 
+    var onBehaviorActivated = startBehaviorActivatedListener((action, data) {
+      print("from behavior activated action $action");
+      print("from behavior activated data ${data}");
+    });
+    var onAnnotationMenuPressed = startAnnotationMenuPressedListener((annotationMenuItem, annotationsList) {
+      print("from annotation menu item $annotationMenuItem");
+      print("from long press text ${annotationsList}");
+    });
+    var onLongPressMenuPressed = startLongPressMenuPressedListener((longPressMenuItem, longPressText) {
+      print("from long press menu item $longPressMenuItem");
+      print("from long press text $longPressText");
+    });
     var onAnnotationSelected = startAnnotationsSelectedListener((annotationWithRects) {
       print("from annotations selected");
 
       for (AnnotWithRect annotWithRect in annotationWithRects) {
         Annot annot = Annot(annotWithRect.id, annotWithRect.pageNumber);
+        print(
+            'annotation first point ${annotWithRect.rect?.x1},${annotWithRect.rect?.y1} second  point ${annotWithRect.rect?.x2},${annotWithRect.rect?.y2}');
         print('annotation has id: ${annotWithRect.id}');
         print('annotation is in page: ${annotWithRect.pageNumber}');
         print('annotation has size: ${annotWithRect.rect?.width},${annotWithRect.rect?.height}');

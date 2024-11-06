@@ -1,7 +1,12 @@
 import 'package:e_book_workspace/home_page.dart';
 import 'package:flutter/material.dart';
+import 'package:pspdfkit_flutter/pspdfkit.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  Pspdfkit.setLicenseKey(null);
+
   runApp(const MyApp());
 }
 
@@ -26,6 +31,7 @@ class _MyAppState extends State<MyApp> {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
+      locale: const Locale("ar", "KA"),
       home: const HomePage(),
     );
   }
